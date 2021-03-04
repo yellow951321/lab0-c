@@ -12,7 +12,8 @@
 queue_t *q_new()
 {
     queue_t *q = malloc(sizeof(queue_t));
-    /* TODO: What if malloc returned NULL? */
+    if (!q)
+        return NULL;
     q->head = NULL;
     q->tail = NULL;
     q->size = 0;
@@ -24,6 +25,8 @@ void q_free(queue_t *q)
 {
     /* TODO: How about freeing the list elements and the strings? */
     list_ele_t *node;
+    if (!q)
+        return;
     for (node = q->head; node != NULL;) {
         list_ele_t *tmp = node;
         node = node->next;
@@ -44,7 +47,6 @@ void q_free(queue_t *q)
 bool q_insert_head(queue_t *q, char *s)
 {
     list_ele_t *newh;
-    /* TODO: What should you do if the q is NULL? */
     /* return fasle if q is NULL*/
     if (!q)
         return false;
@@ -120,15 +122,17 @@ bool q_insert_tail(queue_t *q, char *s)
 bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 {
     list_ele_t *tmp;
-    size_t len;
     /* return false if q is NULL or q->head is NULL */
-    if (!q || q->size == 0)
+    if (!q || !q->head)
         return false;
     tmp = q->head;
     /* copy q->head value into buffer */
-    len = strlen(tmp->value) > bufsize ? bufsize - 1 : strlen(tmp->value);
-    strncpy(sp, tmp->value, len);
-    sp[len] = 0;
+    if (sp) {
+        size_t len =
+            strlen(tmp->value) > bufsize ? bufsize - 1 : strlen(tmp->value);
+        strncpy(sp, tmp->value, len);
+        sp[len] = 0;
+    }
     tmp = q->head;
     q->head = q->head->next;
     if (q->size == 1)
@@ -145,9 +149,9 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
  */
 int q_size(queue_t *q)
 {
-    /* TODO: You need to write the code for this function */
-    /* Remember: It should operate in O(1) time */
-    /* TODO: Remove the above comment when you are about to implement. */
+    /* return fasle if q is NULL*/
+    if (!q)
+        return 0;
     return q->size;
 }
 
@@ -160,8 +164,22 @@ int q_size(queue_t *q)
  */
 void q_reverse(queue_t *q)
 {
-    /* TODO: You need to write the code for this function */
-    /* TODO: Remove the above comment when you are about to implement. */
+    list_ele_t *tmp, *next, *prev;
+
+    /* return fasle if q or q->head is NULL*/
+    if (!q || !q->head)
+        return;
+    if (q->size > 1)
+        for (tmp = q->head, prev = NULL, next = tmp->next; next != NULL;) {
+            next = tmp->next;
+            tmp->next = prev;
+            prev = tmp;
+            tmp = next;
+        }
+    tmp = q->head;
+    q->head = q->tail;
+    q->tail = tmp;
+    return;
 }
 
 /*
@@ -171,6 +189,116 @@ void q_reverse(queue_t *q)
  */
 void q_sort(queue_t *q)
 {
-    /* TODO: You need to write the code for this function */
-    /* TODO: Remove the above comment when you are about to implement. */
+    list_ele_t *tmp;
+
+    /* return fasle if q->head is NULL*/
+    if (!q || !q->head)
+        return;
+
+    /* Sorting element */
+    merge_sort(&q->head);
+
+    /* Update tail */
+    tmp = q->head;
+    while (tmp->next)
+        tmp = tmp->next;
+    q->tail = tmp;
+}
+
+/* Implement merge sort
+ * reference: https://www.geeksforgeeks.org/merge-sort-for-linked-list/
+ */
+void merge_sort(list_ele_t **headRef)
+{
+    list_ele_t *head = *headRef;
+    list_ele_t *a;
+    list_ele_t *b;
+
+    /* Base case -- length 0 or 1 */
+    if ((head == NULL) || (head->next == NULL)) {
+        return;
+    }
+
+    /* Split head into two balanced sublists*/
+    front_back_split(head, &a, &b);
+
+    /* Recursively sort the sublists */
+    merge_sort(&a);
+    merge_sort(&b);
+
+    /* Merge two sorted sublists*/
+    *headRef = merge(a, b);
+
+}
+/* Split list into two balanced sublists used
+ * in q_sort.
+ */
+void front_back_split(list_ele_t *source,
+                      list_ele_t **frontRef,
+                      list_ele_t **backRef)
+{
+    list_ele_t *fast;
+    list_ele_t *slow;
+    slow = source;
+    fast = source->next;
+
+    /* Advance 'fast' two nodes, and advance 'slow' one node */
+    while (fast != NULL) {
+        fast = fast->next;
+        if (fast != NULL) {
+            slow = slow->next;
+            fast = fast->next;
+        }
+    }
+
+    /* 'slow' is before the midpoint in the list, so split
+    in two at the point. */
+    *frontRef = source;
+    *backRef = slow->next;
+    slow->next = NULL;
+
+    return;
+}
+
+/* Merge two sublists
+ */
+list_ele_t *merge(list_ele_t *frontRef, list_ele_t *backRef)
+{
+    list_ele_t *result;
+    list_ele_t *tmp;
+    /* Base cases */
+    if (frontRef == NULL)
+        return backRef;
+    else if (backRef == NULL)
+        return frontRef;
+
+    /* initial result */
+    if (strcmp(frontRef->value, backRef->value) < 0) {
+        result = frontRef;
+        frontRef = frontRef->next;
+    } else {
+        result = backRef;
+        backRef = backRef->next;
+    }
+    tmp = result;
+
+    /* Pick either frontRef or backRef, and recur */
+    while (frontRef || backRef) {
+        if (!backRef) {
+            tmp->next = frontRef;
+            frontRef = frontRef->next;
+        } else if (!frontRef) {
+            tmp->next = backRef;
+            backRef = backRef->next;
+        } else if (strcmp(frontRef->value, backRef->value) < 0) {
+            tmp->next = frontRef;
+            frontRef = frontRef->next;
+        } else {
+            tmp->next = backRef;
+            backRef = backRef->next;
+        }
+        tmp = tmp->next;
+    }
+
+    return result;
 }

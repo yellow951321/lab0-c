@@ -97,4 +97,20 @@ void q_reverse(queue_t *q);
  */
 void q_sort(queue_t *q);
 
+/* Implement merge sort
+ * reference: https://www.geeksforgeeks.org/merge-sort-for-linked-list/
+ */
+void merge_sort();
+
+/* Split list into two balanced sublists used
+ * in q_sort.
+ */
+void front_back_split(list_ele_t *source,
+                      list_ele_t **frontRef,
+                      list_ele_t **backRef);
+
+/* Merge two sublists
+ */
+list_ele_t *merge(list_ele_t *frontRef, list_ele_t *backRef);
+
 #endif /* LAB0_QUEUE_H */
